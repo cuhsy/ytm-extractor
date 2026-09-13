@@ -30,41 +30,41 @@ object YTMHTMLParser {
     fun parse(htmlContent: String): List<YouTubeMusicData> {
         val document: Document = Jsoup.parse(htmlContent)
         val youtubeMusicDataList = mutableListOf<YouTubeMusicData>()
-    
+
         val elements = document.select("div.outer-cell.mdl-cell.mdl-cell--12-col.mdl-shadow--2dp")
         for (element in elements) {
             val titleElement = element.selectFirst("p.mdl-typography--title")
             if (titleElement == null || !titleElement.text().contains("YouTube Music")) continue
-    
+
             val contentCells = element.select("div.content-cell.mdl-cell--6-col.mdl-typography--body-1")
             val topElement = contentCells.firstOrNull { cell ->
                 cell.selectFirst("a[href*=watch]") != null
             } ?: continue
-    
+
             val anchors = topElement.select("a[href]")
-    
+
             val videoElement = anchors.firstOrNull {
                 it.attr("href").contains("watch?v=") && it.text().isNotBlank()
             } ?: continue
-    
+
             val channelElement = anchors.firstOrNull {
                 val href = it.attr("href")
                 (href.contains("/channel/") || href.contains("/@") || href.contains("/user/")) &&
                     it.text().isNotBlank() && it != videoElement
             } ?: continue
-    
+
             val rawText = topElement.ownText().trim()
             val cleaned = rawText.removePrefix("Watched ").trim()
             val dateTime = runCatching { parseDateTime(cleaned) }.getOrNull() ?: continue
-    
+
             val videoTitle = videoElement.text().trim()
             val channelName = channelElement.text().trim().removeSuffix("- Topic").trim()
-    
+
             if (videoTitle.isEmpty() || channelName.isEmpty() || videoTitle.startsWith("http")) {
                 println("Skipping: title='$videoTitle' channel='$channelName'")
                 continue
             }
-    
+
             youtubeMusicDataList.add(
                 YouTubeMusicData(
                     title = videoTitle,
@@ -77,3 +77,4 @@ object YTMHTMLParser {
         }
         return youtubeMusicDataList
     }
+}
